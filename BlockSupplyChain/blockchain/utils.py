@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-def get_all_logged_in_users(request):
+def connecting_logged_in_users(request):
     # Query all non-expired sessions
     # use timezone.now() instead of datetime.now() in latest versions of Django
     sessions = Session.objects.filter(expire_date__gte=timezone.now())
@@ -28,18 +28,41 @@ def get_all_logged_in_users(request):
 
     # Query all logged in users based on id list
     users = User.objects.filter(id__in=uid_list, is_superuser=False)
+    users = User.objects.all().exclude(node_address='')
+    print(users)
     data = '{"nodes":['
     for user in users:
         if data[-1] is not '[':
             data += ","
         data += '"' + user.node_address + '"'
     data += ']}'
-
-    print(users)
+    print(data)
     for user in users:
         requests.post(user.node_address +
                       'connect_node/', data=data)
-    # print(user.node_address+'get_nodes/')
+    return requests.get(user.node_address+'get_nodes/').json()
+
+
+def disconnecting(request):
+    # Query all non-expired sessions
+    # use timezone.now() instead of datetime.now() in latest versions of Django
+    sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    uid_list = []
+
+    # Build a list of user ids from that query
+    for session in sessions:
+        data = session.get_decoded()
+        uid_list.append(data.get('_auth_user_id', None))
+
+    # Query all logged in users based on id list
+    users = User.objects.filter(id__in=uid_list, is_superuser=False)
+    users = User.objects.all().exclude(node_address='')
+    print(users)
+    data = '{"nodes":["' + request.user.node_address + '"]}'
+    print(data)
+    for user in users:
+        requests.post(user.node_address +
+                      'disconnect_node/', data=data)
     return requests.get(user.node_address+'get_nodes/').json()
 
 
@@ -107,8 +130,14 @@ class Blockchain:
 
     def add_node(self, address):
         parsed_url = urlparse(address)
-        self.nodes = set()
+        print("NODES=", self.nodes)
         self.nodes.add(parsed_url.netloc)
+
+    def remove_node(self, address):
+        print("hiii")
+        parsed_url = urlparse(address)
+        self.nodes.discard(parsed_url.netloc)
+        print("DISCARDED=", self.nodes)
 
     def replace_chain(self):
         network = self.nodes
@@ -202,11 +231,27 @@ def connect_node(request):
         nodes = received_json.get('nodes')
         if nodes is None:
             return "No node", HttpResponse(status=400)
+
+        blockchain.nodes = set()
         for node in nodes:
             blockchain.add_node(node)
         response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
                     'total_nodes': list(blockchain.nodes)}
     return JsonResponse(response)
+
+# Disconnecting new nodes
+@csrf_exempt
+def disconnect_node(request):
+    if request.method == 'POST':
+        received_json = json.loads(request.body)
+        nodes = received_json.get('nodes')
+        if nodes is None:
+            return "No node", HttpResponse(status=400)
+        for node in nodes:
+            blockchain.remove_node(node)
+        response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
+                    'total_nodes': list(blockchain.nodes)}
+    return
 
 
 @csrf_exempt

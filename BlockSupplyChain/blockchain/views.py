@@ -5,11 +5,12 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 import socket
 from .utils import *
+from blockchain import utils
 
 User = get_user_model()
 # Create your views here.
 
-User.objects.all().update(node_address)
+User.objects.all().update(node_address='')
 
 
 def register(request):
@@ -55,7 +56,7 @@ def user_login(request):
                 ":" + request.META['SERVER_PORT'] + "/"
             user.save()
             print(user.node_address)
-            data = get_all_logged_in_users(request)
+            data = connecting_logged_in_users(request)
             json_formatted_str = json.dumps(data, indent=2)
 
             return HttpResponse(json_formatted_str)
@@ -67,6 +68,7 @@ def user_login(request):
 
 
 def logout(request):
+    utils.disconnecting(request)
     auth.logout(request)
-    get_all_logged_in_users(request)
+    # connecting_logged_in_users(request)
     return redirect(reverse('login'))

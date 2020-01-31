@@ -8,6 +8,39 @@ from urllib.parse import urlparse
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 import requests
+from django.contrib.sessions.models import Session
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+def get_all_logged_in_users(request):
+    # Query all non-expired sessions
+    # use timezone.now() instead of datetime.now() in latest versions of Django
+    sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    uid_list = []
+
+    # Build a list of user ids from that query
+    for session in sessions:
+        data = session.get_decoded()
+        uid_list.append(data.get('_auth_user_id', None))
+
+    # Query all logged in users based on id list
+    users = User.objects.filter(id__in=uid_list, is_superuser=False)
+    data = '{"nodes":['
+    for user in users:
+        if data[-1] is not '[':
+            data += ","
+        data += '"' + user.node_address + '"'
+    data += ']}'
+
+    print(users)
+    for user in users:
+        requests.post(user.node_address +
+                      'connect_node/', data=data)
+    # print(user.node_address+'get_nodes/')
+    return requests.get(user.node_address+'get_nodes/').json()
 
 
 class Blockchain:
@@ -74,10 +107,10 @@ class Blockchain:
 
     def add_node(self, address):
         parsed_url = urlparse(address)
+        self.nodes = set()
         self.nodes.add(parsed_url.netloc)
 
     def replace_chain(self):
-        print("hi")
         network = self.nodes
         print(network)
         longest_chain = None
@@ -194,6 +227,7 @@ def replace_chain(request):
     return JsonResponse(response)
 
 
+"""
 def signup(request):
     if request.method == 'POST':
         first_name = request.POST['first_name']
@@ -238,3 +272,4 @@ def user_login(request):
 def user_logout(request):
     auth.logout(request)
     return redirect(reverse('blockchain:user_login'))
+"""

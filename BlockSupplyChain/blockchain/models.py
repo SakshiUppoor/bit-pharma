@@ -6,7 +6,8 @@ from django.db import models
 
 class User(AbstractUser):
     otp = models.IntegerField(default=0)
-    is_verified = models.BooleanField(default=False)
+    is_no_verified = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)
     is_manufacturer = models.BooleanField(default=False)
     is_pharmacy = models.BooleanField(default=False)
     node_address = models.CharField(max_length=255, blank=True)

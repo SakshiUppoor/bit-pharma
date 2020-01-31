@@ -1,5 +1,6 @@
 from django.urls import path
 from blockchain.utils import *
+from blockchain.views import *
 
 urlpatterns = [
     path('get_chain/', get_chain, name="get_chain"),

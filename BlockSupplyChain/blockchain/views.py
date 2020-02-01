@@ -72,3 +72,48 @@ def logout(request):
     auth.logout(request)
     # connecting_logged_in_users(request)
     return redirect(reverse('login'))
+
+
+def create_drug(request):
+    if request.method == 'POST':
+        drug_name = request.POST['drug_name']
+        drug_id = request.POST['drug_id']
+        dom = request.POST['dom']
+        doe = request.POST['doe']
+        chem_list = request.POST['chem_list'].split(',')
+        chem_composition = {}
+        for chem in chem_list:
+            name = chem.split(':')[0]
+            p = chem.split(':')[1]
+            chem_composition[name] = p
+
+        new_drug = {
+            "drug_name": drug_name,
+            "drug_id": drug_id,
+            "dom": dom,
+            "doe": doe,
+            "chemicals": chem_composition,
+        }
+        #add_to_someones_inv(request.user, new_drug)
+        blockchain.inv_drugs.append(new_drug)
+        blockchain.univ_drugs.append(new_drug)
+        return HttpResponse(blockchain.inv_drugs)
+    return render(request, "add_drug.html")
+
+
+def transfer(request):
+    if request.method == 'POST':
+        receiver = request.POST['receiver']
+        drugs = request.POST['drugs']
+        for drug in drugs:
+            for d in blockchain.inv_drugs:
+                if d['drug_id'] == drug:
+                    identified_drug = d
+                    break
+            data = '{"sender":"' + request.user.username + \
+                '","receiver":"' + receiver + '","drug ID":"' + drug + '}'
+            requests.post(request.user.node_address +
+                          'add_transaction/', data=data)
+        requests.get(request.user.node_address +
+                     'mine_block/')
+        utils.replace_chain_in_all_nodes()

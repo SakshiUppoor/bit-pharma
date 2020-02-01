@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://unpkg.com/ionicons@4.5.10-0/dist/ionicons.js"></script>
+</head>
+<body>
+    <div style="width:20%;float: left;">
+        <!-- <input type="file" name="pic" accept="image/*"> -->
+        <ul>
+            <li><a>Add Drug</a></li>
+            <li><a>Inventory</a></li>
+            <li><a>Transfer</a></li>
+            <li><a>Transactions</a></li>
+            <li>
+                <button>Nodes <ion-icon name="arrow-dropdown"></ion-icon></button>
+                <ul>
+                    <li><a href="#">Link 1</a></li>
+                    <li><a href="#">Link 2</a></li>
+                    <li><a href="#">Link 3</a></li>
+                </ul> 
+            </li>
+        </ul>    
+    </div>
+    <form method="post" action="">
+    <div style="float:left">
+        <h2>Add Drug</h2>
+        {% csrf_token %}
+        <input type="text" name="drug_name" placeholder="Drug name">
+        <input type="text" name="drug_id" placeholder="Drug ID">
+        <input type="date" name="dom" placeholder="Date of manufacture">
+        <input type="date" name="doe" placeholder="Date of expire">
+        <input type="text" name="chem_list" placeholder="chemicals used with composition">
+        <button type="submit">Create</button>
+    </div>
+    </form>
+    
+</body>
+</html>

@@ -14,4 +14,8 @@ urlpatterns = [
     path('login/', user_login, name="login"),
     path('join/', register, name="register"),
     path('logout/', logout, name="logout"),
+
+    # Drug inventory management
+    path('create_drug', create_drug, name="create_drug"),
+    path('add_to_inv/', add_to_inv, name="add_to_inv"),
 ]

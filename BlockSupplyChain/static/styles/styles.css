@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 5.5fr;
+}
+
+.nav {
+  background: black;
+  height: 100vh;
+}
+
+.main {
+  background: pink;
+  height: 100vh;
+}

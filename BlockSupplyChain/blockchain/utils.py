@@ -198,9 +198,12 @@ def get_chain(request):
                     'length': len(blockchain.chain)}
     return JsonResponse(response)
 
+
+def display_chain(request):
+    response = requests.get("http://localhost:8000/get_chain/")
+    return render(request, 'track.html', { 'response': response })
+
 # Checking if the Blockchain is valid
-
-
 def is_valid(request):
     if request.method == 'GET':
         is_valid = blockchain.is_chain_valid(blockchain.chain)

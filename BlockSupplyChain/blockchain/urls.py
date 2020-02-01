@@ -11,6 +11,7 @@ urlpatterns = [
     path('disconnect_node/', disconnect_node, name="disconnect_node"),
     path('replace_chain/', replace_chain, name="replace_chain"),
     path('get_nodes/', get_nodes, name="get_nodes"),
+    path('display_chain/', display_chain, name="display_chain"),
     path('login/', user_login, name="login"),
     path('join/', register, name="register"),
     path('logout/', logout, name="logout"),

@@ -69,15 +69,17 @@ def disconnecting(request):
 class Blockchain:
 
     def __init__(self):
+        id=str(uuid4())
         self.chain = []
         self.transactions = []
-        self.create_block(nonce=1, previous_hash='0')
+        self.create_block(nonce=1, previous_hash='0',product_id=id)
         self.nodes = set()
 
-    def create_block(self, nonce, previous_hash):
+    def create_block(self, nonce, previous_hash,product_id):
         block = {'index': len(self.chain) + 1,
                  'timestamp': str(datetime.datetime.now()),
                  'nonce': nonce,
+                 'product_id' : product_id,
                  'previous_hash': previous_hash,
                  'transactions': self.transactions}
         self.transactions = []
@@ -120,10 +122,9 @@ class Blockchain:
             block_index += 1
         return True
 
-    def add_transaction(self, sender, receiver, amount, time):
+    def add_transaction(self, sender, receiver):
         self.transactions.append({'sender': sender,
                                   'receiver': receiver,
-                                  'amount': amount,
                                   'time': str(datetime.datetime.now())})
         previous_block = self.get_last_block()
         return previous_block['index'] + 1
@@ -174,14 +175,16 @@ def mine_block(request):
         previous_block = blockchain.get_last_block()
         previous_nonce = previous_block['nonce']
         nonce = blockchain.proof_of_work(previous_nonce)
+        product_id = str(uuid4())
         previous_hash = blockchain.hash(previous_block)
         blockchain.add_transaction(
-            sender=root_node, receiver=node_address, amount=1.15, time=str(datetime.datetime.now()))
-        block = blockchain.create_block(nonce, previous_hash)
+            sender=root_node, receiver=node_address)
+        block = blockchain.create_block(nonce, previous_hash,product_id)
         response = {'message': 'Congratulations, you just mined a block!',
                     'index': block['index'],
                     'timestamp': block['timestamp'],
                     'nonce': block['nonce'],
+                    'product_id' : product_id,
                     'previous_hash': block['previous_hash'],
                     'transactions': block['transactions']}
     return JsonResponse(response)
@@ -209,16 +212,17 @@ def is_valid(request):
     return JsonResponse(response)
 
 # Adding a new transaction to the Blockchain
+# SEnder receiver location uuid
 @csrf_exempt
 def add_transaction(request):
     if request.method == 'POST':
-        print(request.body)
+        print(request.POST)
         received_json = json.loads(request.body)
-        transaction_keys = ['sender', 'receiver', 'amount', 'time']
+        transaction_keys = ['sender', 'receiver' ]
         if not all(key in received_json for key in transaction_keys):
             return 'Some elements of the transaction are missing', HttpResponse(status=400)
         index = blockchain.add_transaction(
-            received_json['sender'], received_json['receiver'], received_json['amount'], received_json['time'])
+            received_json['sender'], received_json['receiver'])
         response = {
             'message': f'This transaction will be added to Block {index}'}
     return JsonResponse(response)

@@ -12,3 +12,10 @@ class User(AbstractUser):
     is_pharmacy = models.BooleanField(default=False)
     node_address = models.CharField(max_length=255, blank=True)
     phone_no = models.CharField(max_length=13)
+    type_choices = [
+        ('M', 'Manufacturer'),
+        ('D', 'Distributer'),
+        ('W', 'Wholesaler'),
+        ('P', 'Pharmacy'),
+        ('C', 'Customer')]
+    type = models.CharField(max_length=3, choices=type_choices, default='C')

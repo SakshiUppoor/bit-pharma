@@ -11,36 +11,29 @@ import requests
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+import socket
 
 User = get_user_model()
 
 
 def connecting_logged_in_users(request):
-    # Query all non-expired sessions
-    # use timezone.now() instead of datetime.now() in latest versions of Django
-    """sessions = Session.objects.filter(expire_date__gte=timezone.now())
-    uid_list = []
-
-    # Build a list of user ids from that query
-    for session in sessions:
-        data = session.get_decoded()
-        uid_list.append(data.get('_auth_user_id', None))
-
-    # Query all logged in users based on id list
-    users = User.objects.filter(id__in=uid_list, is_superuser=False)"""
     users = User.objects.all().exclude(node_address='')
     print(users)
     data = '{"nodes":['
     for user in users:
-        if data[-1] is not '[':
-            data += ","
-        data += '"' + user.node_address + '"'
+        data += '"' + user.node_address + '",'
+
+    host_name = socket.gethostname()
+    host_ip = socket.gethostbyname(host_name)
+    data += '"http://' + host_ip + \
+        ':8000/"'
     data += ']}'
     print(data)
     for user in users:
         requests.post(user.node_address +
                       'connect_node/', data=data)
-    return requests.get(user.node_address+'get_nodes/').json()
+    # return requests.get(user.node_address+'get_nodes/').json()
+    return User.objects.all().exclude(node_address='')
 
 
 def disconnecting(request):
@@ -63,7 +56,7 @@ def disconnecting(request):
     for user in users:
         requests.post(user.node_address +
                       'disconnect_node/', data=data)
-    return requests.get(user.node_address+'get_nodes/').json()
+    return requests.get(request.user.node_address+'get_nodes/').json()
 
 
 class Blockchain:
@@ -125,7 +118,7 @@ class Blockchain:
     def add_transaction(self, sender, receiver, drug_id):
         self.transactions.append({'sender': sender,
                                   'receiver': receiver,
-                                  'drug ID': drug_id,
+                                  'drug_id': drug_id,
                                   'time': str(datetime.datetime.now())})
         previous_block = self.get_last_block()
         return previous_block['index'] + 1
@@ -139,7 +132,7 @@ class Blockchain:
         print("hiii")
         parsed_url = urlparse(address)
         self.nodes.discard(parsed_url.netloc)
-        print("DISCARDED=", self.nodes)
+        print("DISCARDED=", parsed_url.netloc)
 
     def replace_chain(self):
         network = self.nodes
@@ -147,16 +140,18 @@ class Blockchain:
         longest_chain = None
         max_length = len(self.chain)
         for node in network:
-            print(node)
-            response = requests.get(f'http://{node}/get_chain')
+            response = requests.get(f'http://{node}/get_chain/')
             print(response)
+            print(type(response.status_code))
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
                 if length > max_length and self.is_chain_valid(chain):
+                    print("Replaced")
                     max_length = length
                     longest_chain = chain
         if longest_chain:
+            print("!!!")
             self.chain = longest_chain
             return True
         return False
@@ -233,7 +228,6 @@ def connect_node(request):
         if nodes is None:
             return "No node", HttpResponse(status=400)
 
-        blockchain.nodes = set()
         for node in nodes:
             blockchain.add_node(node)
         response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
@@ -252,7 +246,22 @@ def disconnect_node(request):
             blockchain.remove_node(node)
         response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
                     'total_nodes': list(blockchain.nodes)}
-    return
+    return JsonResponse(response)
+
+
+@csrf_exempt
+def add_to_univ(request):
+    if request.method == 'POST':
+        received_json = json.loads(request.body)
+        drugs = received_json.get('drugs')
+        if drugs is None:
+            return "No drugs", HttpResponse(status=400)
+        for drug in drugs:
+            if drug not in blockchain.univ_drugs:
+                blockchain.univ_drugs.append(drug)
+        response = {'message': 'All drugs added to universal list.',
+                    'drugs': list(blockchain.univ_drugs)}
+    return JsonResponse(response)
 
 
 @csrf_exempt
@@ -261,9 +270,11 @@ def get_nodes(request):
 
 
 # Replacing the chain by the longest chain if needed
+@csrf_exempt
 def replace_chain(request):
     if request.method == 'GET':
         is_chain_replaced = blockchain.replace_chain()
+        resonse = {}
         if is_chain_replaced:
             response = {'message': 'The nodes had different chains so the chain was replaced by the longest one.',
                         'new_chain': blockchain.chain}
@@ -289,21 +300,57 @@ def add_to_inv(request):
     return JsonResponse(response)
 
 
-def add_to_someones_inv(user, new_drug):
-    data = '{"drugs":[{"drug_name": "' + new_drug["drug_name"] + '", "drug_id": "' + new_drug["drug_id"] + \
-        '", "dom": "' + new_drug["dom"] + '", "doe": "' + \
-        new_drug["dom"] + '", "chemicals": {'
-    for c in new_drug["chemicals"]:
-        data += '"' + c + '": "' + new_drug["chemicals"][c] + '",'
-    data = data[:-1]
-    data += '}}]}'
-    print(data)
-    print()
-    requests.post(user.node_address+'add_to_inv/', data=data)
+@csrf_exempt
+def add_to_someones_inv(user, new_drugs):
+    if user.node_address != '':
+        for new_drug in new_drugs:
+            data = '{"drugs":[{"drug_name": "' + new_drug["drug_name"] + '", "drug_id": "' + new_drug["drug_id"] + \
+                '", "dom": "' + new_drug["dom"] + '", "doe": "' + \
+                new_drug["dom"]
+            data += '}}]}'
+            print(data)
+            print()
+            requests.post(user.node_address+'add_to_inv/', data=data)
+    response = {'message': 'Drug added in inventory:',
+                'total_drugs': list(blockchain.inv_drugs)}
+    return JsonResponse(response)
 
 
+@csrf_exempt
 def replace_chain_in_all_nodes():
     users = User.objects.all().exclude(node_address='')
     for user in users:
-        requests.post(user.node_address +
-                      'replace_chain/')
+        requests.get(user.node_address +
+                     'replace_chain/')
+
+    host_name = socket.gethostname()
+    host_ip = socket.gethostbyname(host_name)
+    url = "http://" + host_ip + \
+        ":8000/"
+    requests.post(url)
+
+
+@csrf_exempt
+def get_univ_drugs(request):
+    return JsonResponse({"drugs": list(blockchain.univ_drugs), })
+
+
+
+
+def track_product(request,drug_id):
+    print(drug_id)
+    data = requests.get(request.user.node_address+"get_nodes/")
+    print(json.loads(data.text))
+    json_obj = json.loads(data.text)
+    if drug_id not in blockchain.univ_drugs:
+        mylist = []
+        for entry in blockchain.chain:
+            for transaction in entry["transactions"]:
+                if str(transaction["drug_id"]) == str(drug_id):
+                    mylist.append(transaction)
+
+        if len(mylist) != 0 :
+            return render(request, 'track_drug.html', { 
+        'network': json_obj["nodes"], 'drug_id': drug_id , 'man_date': mylist[0]['time'].split(" ")[0] , 'response' : mylist })
+    return render(request, 'track_drug.html', { 'drug_id': "N.A." , 'man_date': "N.A." , 'response' : mylist })
+    

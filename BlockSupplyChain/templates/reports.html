@@ -25,45 +25,34 @@
         <div class="elem">Reports</div>
     </div>
 
-    <form method="post" action="">
     <table class="ttable">
         <tr class="itr">
             
             <th class="ith"></th>
-            <th class="ith"></th>
             
-            <th class="ith">Drug ID</th>
+            <th class="ith">Counterfeit Drugs(Potentially)</th>
             <th class="ith">Drug Name</th>
-            <th  class="ith">Date of Expiry</th>
-            <th class="ith">Status</th>
+            <th  class="ith">Location</th>
+            <th class="ith">Checked</th>
 
         </tr>
         <tr class="itr">
-        
-        {% for i in l %}
             <td class="itd grey"></td>
-            <td class="itd"><input type="checkbox" name="drugs[]" value={{i.drug_id}}></td>
-            <td class="itd">{{i.drug_name}}</td>
-            <td class="itd">{{i.drug_id}}</td>
-            <td class="itd">{{i.doe}}</td>
-            <td class="itd">
-                <div class="go">Safe</div>
-            </td>
+            <td class="itd">3412-fga-2jhd</td>
+            <td class="itd">Aspirin</td>
+            <td class="itd">Bhavans,Andheri,West</td>
+            <td class="itd">Unchecked</td> 
         </tr>
-        {% endfor %}
+
+         <tr class="itr">
+            <td class="itd grey"></td>
+            <td class="itd">678t-ewd-2eue</td>
+            <td class="itd">Saridon</td>
+            <td class="itd">Bhavans,Andheri,West</td>
+            <td class="itd">Unchecked</td> 
+        </tr>
 
         </table>
-        <div>
-        <div style="height:25em">
-        </div>
-        <div style ="padding-left:10em">
-            <h4>Sender : {{request.user.username}}</h4>
-                {% csrf_token %}
-                <h4 style="display:inline-block">Receiver:&nbsp;&nbsp;&nbsp;</h4><input type="text" name="receiver" placeholder="Reciever">
-                <button class="sub" type="submit">Submit</button>
-           </div>
-           
-            </form>
         </div>
         
 
